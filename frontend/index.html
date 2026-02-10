@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel · K8s Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-root: #0a0c10;
+      --bg-surface: #12151c;
+      --bg-elevated: #1a1e28;
+      --bg-hover: #222836;
+      --border: #2a2f3d;
+      --border-focus: #4f8fff;
+      --text-primary: #e8ecf4;
+      --text-secondary: #8892a6;
+      --text-muted: #5c6478;
+      --accent: #4f8fff;
+      --accent-glow: rgba(79, 143, 255, 0.15);
+      --green: #34d399;
+      --green-bg: rgba(52, 211, 153, 0.1);
+      --red: #f87171;
+      --red-bg: rgba(248, 113, 113, 0.1);
+      --yellow: #fbbf24;
+      --yellow-bg: rgba(251, 191, 36, 0.1);
+      --blue-bg: rgba(79, 143, 255, 0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-root);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Login ──────────────────────────────────────── */
+    .login-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -20%, rgba(79,143,255,0.08), transparent),
+        var(--bg-root);
+    }
+
+    .login-card {
+      width: 100%; max-width: 400px;
+      padding: 40px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      animation: fadeUp 0.5s ease-out;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-logo {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--accent), #7c5fff);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 20px; color: #fff;
+      margin-bottom: 28px;
+    }
+
+    .login-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .login-subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 32px; }
+
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block; font-size: 13px; font-weight: 500;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%; padding: 10px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font); font-size: 14px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--border-focus); }
+    .field input::placeholder { color: var(--text-muted); }
+
+    .btn-primary {
+      width: 100%; padding: 11px;
+      background: var(--accent);
+      color: #fff; border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font); font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary:hover { background: #3d7be6; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .login-error {
+      background: var(--red-bg);
+      border: 1px solid rgba(248,113,113,0.2);
+      color: var(--red);
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      font-size: 13px; margin-bottom: 20px;
+    }
+
+    .login-hint {
+      margin-top: 20px; padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--text-muted);
+      font-family: var(--mono);
+    }
+    .login-hint code { color: var(--text-secondary); }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .app-layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      padding: 20px 0;
+      display: flex; flex-direction: column;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .sidebar-logo .logo-mark {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), #7c5fff);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #fff;
+    }
+    .sidebar-logo span { font-weight: 700; font-size: 15px; }
+
+    .nav-section { padding: 8px 12px; }
+    .nav-label {
+      font-size: 10px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0 8px; margin-bottom: 4px;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      font-size: 13px; color: var(--text-secondary);
+      cursor: pointer; transition: all 0.15s;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .nav-item.active {
+      background: var(--accent-glow);
+      color: var(--accent); font-weight: 500;
+    }
+    .nav-item svg { width: 18px; height: 18px; opacity: 0.7; }
+    .nav-item.active svg { opacity: 1; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .user-pill {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px;
+    }
+    .user-avatar {
+      width: 32px; height: 32px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--accent);
+    }
+    .user-name { font-weight: 500; color: var(--text-primary); }
+    .user-role { font-size: 11px; color: var(--text-muted); }
+
+    .logout-btn {
+      margin-top: 12px; width: 100%;
+      padding: 7px; border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-secondary); font-size: 12px;
+      cursor: pointer; font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .logout-btn:hover { background: var(--red-bg); color: var(--red); border-color: rgba(248,113,113,0.3); }
+
+    /* ── Main content ──────────────────────────────── */
+    .main { flex: 1; overflow-y: auto; }
+
+    .topbar {
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h1 { font-size: 18px; font-weight: 700; }
+    .topbar-meta { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+
+    .content { padding: 28px 32px; }
+
+    /* ── Metrics grid ──────────────────────────────── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.2s;
+      animation: fadeUp 0.4s ease-out both;
+    }
+    .metric-card:nth-child(2) { animation-delay: 0.05s; }
+    .metric-card:nth-child(3) { animation-delay: 0.1s; }
+    .metric-card:nth-child(4) { animation-delay: 0.15s; }
+    .metric-card:hover { border-color: var(--border-focus); }
+
+    .metric-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+      background: var(--blue-bg);
+    }
+    .metric-icon svg { width: 18px; height: 18px; color: var(--accent); }
+
+    .metric-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .metric-value { font-size: 28px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
+
+    .metric-change {
+      font-size: 12px; font-weight: 600; font-family: var(--mono);
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .metric-change.positive { color: var(--green); background: var(--green-bg); }
+    .metric-change.negative { color: var(--red); background: var(--red-bg); }
+
+    /* ── Two-column layout ─────────────────────────── */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      animation: fadeUp 0.5s ease-out 0.2s both;
+    }
+
+    .panel-title {
+      font-size: 13px; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 16px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    /* ── Chart ─────────────────────────────────────── */
+    .chart-area { height: 200px; display: flex; align-items: flex-end; gap: 6px; padding-top: 8px; }
+    .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .chart-bar {
+      width: 100%; border-radius: 6px 6px 2px 2px;
+      background: linear-gradient(180deg, var(--accent), rgba(79,143,255,0.3));
+      transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      min-height: 4px;
+    }
+    .chart-label { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+
+    /* ── Activity list ─────────────────────────────── */
+    .activity-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+
+    .activity-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-top: 6px; flex-shrink: 0;
+    }
+    .activity-dot.success { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.4); }
+    .activity-dot.warning { background: var(--yellow); box-shadow: 0 0 8px rgba(251,191,36,0.4); }
+    .activity-dot.error { background: var(--red); box-shadow: 0 0 8px rgba(248,113,113,0.4); }
+    .activity-dot.info { background: var(--accent); box-shadow: 0 0 8px rgba(79,143,255,0.4); }
+
+    .activity-text { font-size: 13px; color: var(--text-primary); }
+    .activity-time { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-top: 2px; }
+
+    /* ── Systems table ─────────────────────────────── */
+    .systems-panel { margin-top: 16px; animation-delay: 0.3s; }
+
+    .sys-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .sys-row:last-child { border-bottom: none; }
+    .sys-name { color: var(--text-primary); font-weight: 500; }
+
+    .sys-badge {
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .sys-badge.healthy { color: var(--green); background: var(--green-bg); }
+    .sys-badge.degraded { color: var(--yellow); background: var(--yellow-bg); }
+    .sys-badge.down { color: var(--red); background: var(--red-bg); }
+
+    .sys-uptime { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+
+    /* ── Loading ────────────────────────────────────── */
+    .loading-screen {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); font-size: 14px;
+    }
+    .spinner {
+      width: 24px; height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .grid-2col { grid-template-columns: 1fr; }
+      .content { padding: 20px 16px; }
+      .topbar { padding: 14px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    // ── Config ─────────────────────────────────────────────────────
+    const API_BASE = window.__API_BASE__ || 'http://localhost:8080';
+
+    // ── API helper ─────────────────────────────────────────────────
+    async function api(path, options = {}) {
+      const token = sessionStorage.getItem('token');
+      const res = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...options.headers,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro na requisição');
+      return data;
+    }
+
+    // ── Icons (inline SVGs) ────────────────────────────────────────
+    const Icons = {
+      users: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      activity: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+      server: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>,
+      clock: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+      dashboard: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>,
+      chart: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>,
+      bell: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
+      settings: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
+      logout: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+    };
+
+    const IconMap = { users: Icons.users, activity: Icons.activity, server: Icons.server, clock: Icons.clock };
+
+    // ── Login Page ─────────────────────────────────────────────────
+    function LoginPage({ onLogin }) {
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+          const data = await api('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password }),
+          });
+          sessionStorage.setItem('token', data.token);
+          onLogin(data.user);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="login-wrapper">
+          <form className="login-card" onSubmit={handleSubmit}>
+            <div className="login-logo">K8</div>
+            <div className="login-title">Bem-vindo de volta</div>
+            <div className="login-subtitle">Faça login para acessar o painel</div>
+
+            {error && <div className="login-error">{error}</div>}
+
+            <div className="field">
+              <label>Usuário</label>
+              <input
+                type="text" placeholder="seu.usuario"
+                value={username} onChange={e => setUsername(e.target.value)}
+                autoFocus autoComplete="username"
+              />
+            </div>
+            <div className="field">
+              <label>Senha</label>
+              <input
+                type="password" placeholder="••••••••"
+                value={password} onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button className="btn-primary" type="submit" disabled={loading || !username || !password}>
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+
+            <div className="login-hint">
+              Demo: <code>admin</code> / <code>admin123</code><br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>viewer</code> / <code>viewer123</code>
+            </div>
+          </form>
+        </div>
+      );
+    }
+
+    // ── Dashboard Page ─────────────────────────────────────────────
+    function DashboardPage({ user, onLogout }) {
+      const [data, setData] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        api('/api/dashboard')
+          .then(setData)
+          .catch(err => {
+            if (err.message.includes('Token')) onLogout();
+          })
+          .finally(() => setLoading(false));
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="loading-screen">
+            <div className="spinner"></div>
+            Carregando dashboard...
+          </div>
+        );
+      }
+
+      const maxVal = data ? Math.max(...data.chart.values) : 1;
+
+      return (
+        <div className="app-layout">
+          {/* Sidebar */}
+          <aside className="sidebar">
+            <div className="sidebar-logo">
+              <div className="logo-mark">K8</div>
+              <span>Dashboard</span>
+            </div>
+
+            <nav className="nav-section">
+              <div className="nav-label">Principal</div>
+              <a className="nav-item active"><Icons.dashboard /> Visão Geral</a>
+              <a className="nav-item"><Icons.chart /> Métricas</a>
+              <a className="nav-item"><Icons.bell /> Alertas</a>
+            </nav>
+
+            <nav className="nav-section">
+              <div className="nav-label">Sistema</div>
+              <a className="nav-item"><Icons.server /> Infraestrutura</a>
+              <a className="nav-item"><Icons.settings /> Configurações</a>
+            </nav>
+
+            <div className="sidebar-footer">
+              <div className="user-pill">
+                <div className="user-avatar">{user.avatar}</div>
+                <div>
+                  <div className="user-name">{user.name}</div>
+                  <div className="user-role">{user.role}</div>
+                </div>
+              </div>
+              <button className="logout-btn" onClick={onLogout}>
+                Sair da conta
+              </button>
+            </div>
+          </aside>
+
+          {/* Main content */}
+          <div className="main">
+            <header className="topbar">
+              <h1>Visão Geral</h1>
+              <span className="topbar-meta">
+                {new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
+            </header>
+
+            <div className="content">
+              {/* Metric cards */}
+              <div className="metrics-grid">
+                {data.metrics.map((m, i) => {
+                  const Icon = IconMap[m.icon] || Icons.activity;
+                  return (
+                    <div className="metric-card" key={i}>
+                      <div className="metric-icon"><Icon /></div>
+                      <div className="metric-label">{m.label}</div>
+                      <div className="metric-value">{m.value}</div>
+                      <span className={`metric-change ${m.change >= 0 ? 'positive' : 'negative'}`}>
+                        {m.change >= 0 ? '↑' : '↓'} {Math.abs(m.change)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Chart + Activity */}
+              <div className="grid-2col">
+                <div className="panel">
+                  <div className="panel-title">Requisições por Hora</div>
+                  <div className="chart-area">
+                    {data.chart.labels.map((label, i) => (
+                      <div className="chart-bar-wrap" key={i}>
+                        <div
+                          className="chart-bar"
+                          style={{ height: `${(data.chart.values[i] / maxVal) * 180}px` }}
+                        />
+                        <span className="chart-label">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="panel">
+                  <div className="panel-title">Atividade Recente</div>
+                  {data.activities.map(a => (
+                    <div className="activity-item" key={a.id}>
+                      <div className={`activity-dot ${a.type}`} />
+                      <div>
+                        <div className="activity-text">{a.message}</div>
+                        <div className="activity-time">{a.timestamp}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Systems status */}
+              <div className="panel systems-panel">
+                <div className="panel-title">Status dos Serviços</div>
+                {data.systems.map((s, i) => (
+                  <div className="sys-row" key={i}>
+                    <span className="sys-name">{s.name}</span>
+                    <span className="sys-uptime">{s.uptime}%</span>
+                    <span className={`sys-badge ${s.status}`}>{s.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── App Root ───────────────────────────────────────────────────
+    function App() {
+      const [user, setUser] = useState(null);
+
+      const handleLogout = useCallback(() => {
+        sessionStorage.removeItem('token');
+        setUser(null);
+      }, []);
+
+      return user
+        ? <DashboardPage user={user} onLogout={handleLogout} />
+        : <LoginPage onLogin={setUser} />;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
