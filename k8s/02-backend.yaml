@@ -28,7 +28,7 @@ spec:
             - name: GIN_MODE
               value: "release"
             - name: CORS_ORIGINS
-              value: "http://localhost:3000,https://dashboard.example.com"
+              value: "http://localhost:3000,https://dashboard.local"
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
