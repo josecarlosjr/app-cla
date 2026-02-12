@@ -12,10 +12,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - dashboard.example.com
+        - dashboard.local
       secretName: dashboard-tls
   rules:
-    - host: dashboard.example.com
+    - host: dashboard.local
       http:
         paths:
           # API requests → backend
