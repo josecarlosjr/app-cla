@@ -6,3 +6,9 @@ resources:
   - 02-backend.yaml
   - 03-frontend.yaml
   - 04-ingress.yaml
+
+generators:
+  - ksops-generator.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
