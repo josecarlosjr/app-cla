@@ -6,4 +6,4 @@
 creation_rules:
   - path_regex: .*secret.*\.ya?ml 
     encryted_regex: '^(data|stringData)$'
-    age: age1ck6ak0u4tuxydx4dsw2lc9apae1k5qvcmzx59j0ktkavfhjkepa54se0fp15
+    age: age1x6ka0u4tudyx4dsw2lc9apaejk5qvcmzx59j0ktkavfhjkepa54se0fpl5
