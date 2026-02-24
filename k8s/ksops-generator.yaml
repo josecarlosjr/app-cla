@@ -1,0 +1,6 @@
+apiVersion: viaduct.ai/v1
+kind: ksops
+metadata:
+  name: backend-secrets
+files:
+  - 01-secret.yaml
