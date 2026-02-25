@@ -18,7 +18,7 @@ spec:
       containers:
         - name: frontend
           #Replace by your registry
-          image: registry.example.com/dashboard/frontend:latest
+          image: josecarlosjr/app-cla-frontend:latest
           ports:
             - containerPort: 80
               name: http
