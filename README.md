@@ -1,7 +1,7 @@
 # app-cla
-### simple app version 1
+## simple app version 1
 
-1. Arquitetura e repositórios
+### 1. Arquitetura e repositórios
 
 Você separou o fluxo em dois repositórios:
 
@@ -11,7 +11,7 @@ Você separou o fluxo em dois repositórios:
 
 A estrutura com frontend e backend desacoplados foi mantida, com um Dockerfile para cada serviço.
 
-2. Build e publicação de imagens
+### 2. Build e publicação de imagens
 
 - O workflow do GitHub Actions no repositório de imagens foi criado e passou a funcionar.
 
@@ -25,7 +25,7 @@ Os repositórios no Docker Hub existem e foram usados:
 
 - As imagens foram publicadas com tags do tipo sha-....
 
-3. Backend
+### 3. Backend
 
 O problema inicial do build do backend foi resolvido.
 
@@ -37,7 +37,7 @@ O endpoint de health foi validado com sucesso:
 
 - retorno OK com JSON (status: healthy)
 
-4. SOPS + age
+### 4. SOPS + age
 
 Você abandonou Sealed Secrets e seguiu com SOPS + age.
 
@@ -53,7 +53,7 @@ A chave privada foi armazenada no cluster como secret:
 
 - argocd/sops-age
 
-5. ArgoCD + plugin CMP + KSOPS
+### 5. ArgoCD + plugin CMP + KSOPS
 
 O Config Management Plugin do ArgoCD foi configurado.
 
@@ -71,7 +71,7 @@ O plugin passou a funcionar com o nome:
 
 sops-kustomize-v1.0
 
-6. Repositório GitOps K8s
+### 6. Repositório GitOps K8s
 
 - O arquivo .sops.yaml foi movido para a raiz do repositório app-cla.
 
@@ -81,7 +81,7 @@ sops-kustomize-v1.0
 
 - O kustomization.yaml passou a usar o gerador KSOPS.
 
-7. Git
+### 7. Git
 
 O problema de push via HTTPS foi resolvido.
 
@@ -93,7 +93,7 @@ Você conseguiu:
 
 - fazer push corretamente para o GitHub
 
-8. Deploy com ArgoCD
+### 8. Deploy com ArgoCD
 
 A Application app-cla foi criada no ArgoCD.
 
@@ -121,7 +121,7 @@ O deploy criou os recursos no namespace dashboard-app:
 
 - Ingress
 
-9. Cluster / aplicação
+### 9. Cluster / aplicação
 
 - Os manifests foram corrigidos ao longo do caminho (incluindo erro de apiVersion no backend).
 
@@ -129,7 +129,7 @@ O deploy criou os recursos no namespace dashboard-app:
 
 - Em um momento posterior, os pods ficaram Running e a aplicação passou a responder.
 
-10. Acesso pela rede
+### 10. Acesso pela rede
 
 O acesso externo foi validado através do seu HAProxy.
 
@@ -145,7 +145,7 @@ Ficou claro que externamente você deve usar:
 
 - O acesso HTTPS ao domínio passou pelo HAProxy/Ingress corretamente.
 
-11. Diagnóstico final atual
+### 11. Diagnóstico final atual
 
 A página em branco foi diagnosticada corretamente.
 
