@@ -173,5 +173,5 @@ Isso explica por que:
 - [x] Acesso via HAproxy + Ingress
 - [x] Backend acessível pela URL final
 - [ ] Frontend funcional
-- [] ISTIO
+- [ ] ISTIO
 
