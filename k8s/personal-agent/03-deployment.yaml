@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: personal-agent
+  namespace: personal-agent
+  labels:
+    app: personal-agent
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: personal-agent
+  template:
+    metadata:
+      labels:
+        app: personal-agent
+    spec:
+      containers:
+        - name: agent
+          image: josecarlosjr/app-cla-agent:latest
+          envFrom:
+            - secretRef:
+                name: agent-secrets
+          env:
+            - name: DATA_DIR
+              value: /data
+          volumeMounts:
+            - name: agent-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "print('ok')"]
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command: ["python", "-c", "print('ok')"]
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      volumes:
+        - name: agent-data
+          persistentVolumeClaim:
+            claimName: agent-data

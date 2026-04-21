@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: news-analyzer
+  namespace: personal-agent
+  labels:
+    app: news-analyzer
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  schedule: "0 9,14,21 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          containers:
+            - name: news
+              image: josecarlosjr/app-cla-agent:latest
+              command: ["python", "news_analyzer.py"]
+              envFrom:
+                - secretRef:
+                    name: agent-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 300m
+                  memory: 256Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
