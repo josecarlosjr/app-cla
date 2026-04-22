@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: notifications
+  namespace: personal-agent
+  labels:
+    app: notifications
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  schedule: "0 */4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: notifications
+              image: josecarlosjr/app-cla-agent:latest
+              command: ["python", "notifications.py"]
+              envFrom:
+                - secretRef:
+                    name: agent-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
