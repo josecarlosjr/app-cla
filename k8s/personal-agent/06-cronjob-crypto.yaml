@@ -16,6 +16,8 @@ spec:
       backoffLimit: 2
       template:
         spec:
+          nodeSelector:
+            personal-agent: "true"
           containers:
             - name: crypto-scanner
               image: josecarlosjr/app-cla-agent:latest
