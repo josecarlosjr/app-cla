@@ -13,6 +13,9 @@ resources:
   - 07-cronjob-patterns.yaml
   - 08-deployment-api.yaml
   - 09-service-api.yaml
+  - 10-cronjob-digest-morning.yaml
+  - 11-cronjob-digest-evening.yaml
+  - 12-cronjob-notifications.yaml
 
 generators:
   - ksops-generator.yaml
