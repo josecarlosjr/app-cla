@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: personal-agent-api
+  namespace: personal-agent
+  labels:
+    app: personal-agent-api
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: personal-agent-api
+  template:
+    metadata:
+      labels:
+        app: personal-agent-api
+    spec:
+      containers:
+        - name: api
+          image: josecarlosjr/app-cla-agent:latest
+          command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: agent-secrets
+          env:
+            - name: DATA_DIR
+              value: /data
+          volumeMounts:
+            - name: agent-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/trends
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/trends
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 15
+      volumes:
+        - name: agent-data
+          persistentVolumeClaim:
+            claimName: agent-data

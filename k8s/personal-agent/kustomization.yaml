@@ -9,6 +9,10 @@ resources:
   - 03-deployment.yaml
   - 04-cronjob-monitor.yaml
   - 05-cronjob-news.yaml
+  - 06-cronjob-crypto.yaml
+  - 07-cronjob-patterns.yaml
+  - 08-deployment-api.yaml
+  - 09-service-api.yaml
 
 generators:
   - ksops-generator.yaml
