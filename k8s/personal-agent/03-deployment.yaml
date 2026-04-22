@@ -16,6 +16,8 @@ spec:
       labels:
         app: personal-agent
     spec:
+      nodeSelector:
+        personal-agent: "true"
       containers:
         - name: agent
           image: josecarlosjr/app-cla-agent:latest
