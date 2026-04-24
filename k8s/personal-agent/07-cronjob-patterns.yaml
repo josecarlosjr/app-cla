@@ -20,7 +20,7 @@ spec:
             personal-agent: "true"
           containers:
             - name: pattern-analysis
-              image: josecarlosjr/app-cla-agent:sha-45cf6cf
+              image: josecarlosjr/app-cla-agent:sha-a5d424b
               command: ["sh", "-c", "python pattern_matcher.py && python trend_scorer.py"]
               envFrom:
                 - secretRef:
