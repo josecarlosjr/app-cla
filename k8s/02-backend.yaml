@@ -18,7 +18,7 @@ spec:
       containers:
         - name: backend
           #Replace by your registry
-          image: josecarlosjr/app-cla-backend:sha-0c17a68 
+          image: josecarlosjr/app-cla-backend:sha-673d4aa 
           ports:
             - containerPort: 8080
               name: http
