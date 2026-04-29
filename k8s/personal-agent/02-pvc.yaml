@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/part-of: personal-agent
 spec:
   capacity:
-    storage: 1Gi
+    storage: 5Gi
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
@@ -36,4 +36,4 @@ spec:
   storageClassName: agent-local
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
