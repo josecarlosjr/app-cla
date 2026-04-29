@@ -20,7 +20,7 @@ spec:
         personal-agent: "true"
       containers:
         - name: api
-          image: josecarlosjr/app-cla-agent:sha-57003b5
+          image: josecarlosjr/app-cla-agent:sha-e16289d
           command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
           ports:
             - containerPort: 8000
