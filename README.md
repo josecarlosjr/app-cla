@@ -172,6 +172,6 @@ Isso explica por que:
 - [x] Deploy no cluster
 - [x] Acesso via HAproxy + Ingress
 - [x] Backend acessível pela URL final
-- [ ] Frontend funcional (*Falta*)
+- [x] Frontend funcional (*Falta*)
 - [ ] ISTIO (*Falta*)
 
