@@ -21,7 +21,7 @@ spec:
             personal-agent: "true"
           containers:
             - name: digest-evening
-              image: josecarlosjr/app-cla-agent:sha-efba827
+              image: josecarlosjr/app-cla-agent:sha-465c9c4
               command: ["python", "digest.py", "evening"]
               envFrom:
                 - secretRef:
