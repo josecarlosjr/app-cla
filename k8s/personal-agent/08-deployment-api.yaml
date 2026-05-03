@@ -20,7 +20,7 @@ spec:
         personal-agent: "true"
       containers:
         - name: api
-          image: josecarlosjr/app-cla-agent:sha-6ec771c
+          image: josecarlosjr/app-cla-agent:sha-16e20cc
           command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
           ports:
             - containerPort: 8000
@@ -43,13 +43,13 @@ spec:
               memory: 512Mi
           livenessProbe:
             httpGet:
-              path: /api/trends
+              path: /openapi.json
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /api/trends
+              path: /openapi.json
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 15
