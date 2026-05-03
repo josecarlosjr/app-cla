@@ -20,7 +20,7 @@ spec:
             personal-agent: "true"
           containers:
             - name: monitor
-              image: josecarlosjr/app-cla-agent:sha-6ec771c
+              image: josecarlosjr/app-cla-agent:sha-16e20cc
               command: ["python", "monitor.py"]
               envFrom:
                 - secretRef:
