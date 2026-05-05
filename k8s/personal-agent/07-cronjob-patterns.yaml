@@ -7,7 +7,7 @@ metadata:
     app: pattern-analysis
     app.kubernetes.io/part-of: personal-agent
 spec:
-  schedule: "0 10,18 * * *"
+  schedule: "0 14 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
