@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-allow-pia
+  namespace: personal-agent
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: personal-agent
+    - podSelector:
+        matchLabels:
+          app: personal-agent-api
+    ports:
+    - protocol: TCP
+      port: 5432

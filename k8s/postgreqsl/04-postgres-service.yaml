@@ -1,0 +1,34 @@
+---
+# Headless service (StatefulSet pattern)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+  namespace: personal-agent
+  labels:
+    app: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+---
+# Regular service para acesso desde apps
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: personal-agent
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
