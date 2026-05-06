@@ -1,0 +1,32 @@
+# argocd/postgres-application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/josecarlosjr/app-cla.git
+    targetRevision: HEAD
+    path: postgres
+    plugin:
+      name: kustomize-with-ksops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: personal-agent
+  syncPolicy:
+    automated:
+      prune: false  #NUNCA auto-prune para Postgres
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
