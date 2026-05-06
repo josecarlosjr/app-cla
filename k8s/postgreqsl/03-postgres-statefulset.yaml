@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: personal-agent
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      # Pin estritamente ao node-01
+      nodeSelector:
+        kubernetes.io/hostname: node-01
+      
+      # QoS Guaranteed para Postgres não ser killed primeiro em pressure
+      containers:
+      - name: postgres
+        image: timescale/timescaledb:latest-pg16
+        imagePullPolicy: IfNotPresent
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: POSTGRES_PASSWORD
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
+        # TimescaleDB tuning hint
+        - name: TS_TUNE_MEMORY
+          value: "1500MB"
+        - name: TS_TUNE_NUM_CPUS
+          value: "1"
+        
+        ports:
+        - name: postgres
+          containerPort: 5432
+        
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgres-config
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+        
+        # Custom command para usar nosso config
+        args:
+        - "postgres"
+        - "-c"
+        - "config_file=/etc/postgresql/postgresql.conf"
+        
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "pg_ctl -D /var/lib/postgresql/data/pgdata -m fast -w stop"
+      
+      terminationGracePeriodSeconds: 60
+      
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-data
+      - name: postgres-config
+        configMap:
+          name: postgres-config
