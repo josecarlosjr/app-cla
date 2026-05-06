@@ -10,16 +10,16 @@ spec:
   project: default
   source:
     repoURL: https://github.com/josecarlosjr/app-cla.git
-    targetRevision: HEAD
-    path: postgres
-    plugin:
-      name: kustomize-with-ksops
+    # When testing from this branch use `postgres/temporarily`; switch
+    # to `main` (or `HEAD`) once merged.
+    targetRevision: postgres/temporarily
+    path: k8s/postgreqsl
   destination:
     server: https://kubernetes.default.svc
     namespace: personal-agent
   syncPolicy:
     automated:
-      prune: false  #NUNCA auto-prune para Postgres
+      prune: false  # NUNCA auto-prune para Postgres
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
