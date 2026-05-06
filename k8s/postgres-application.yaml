@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/josecarlosjr/app-cla.git
     targetRevision: HEAD
-    path: postgres
+    path: k8s/postgreqsl
     plugin:
       name: kustomize-with-ksops
   destination:
