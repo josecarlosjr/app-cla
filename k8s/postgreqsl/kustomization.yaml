@@ -1,6 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+
 # Resource ordering note: kustomize / k8s controllers don't deploy in
 # strict file order, but listing storage and config first makes intent
 # clear. PVC stays Pending until the StatefulSet pod schedules
@@ -28,3 +29,7 @@ generators:
 
 generatorOptions:
   disableNameSuffixHash: true
+
+namespace: personal-agent
+
+
