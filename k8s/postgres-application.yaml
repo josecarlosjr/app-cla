@@ -19,7 +19,7 @@ spec:
     namespace: personal-agent
   syncPolicy:
     automated:
-      prune: false  #NUNCA auto-prune para Postgres
+      prune: false  # NUNCA auto-prune para Postgres
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
