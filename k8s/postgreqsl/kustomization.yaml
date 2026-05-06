@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Resource ordering note: kustomize / k8s controllers don't deploy in
+# strict file order, but listing storage and config first makes intent
+# clear. PVC stays Pending until the StatefulSet pod schedules
+# (StorageClass is WaitForFirstConsumer) — at which point local-path
+# needs the patched config to know where on node-01 to provision.
+#
+# Resources have explicit `namespace:` set in each file, so we don't
+# override here — local-path-config-patch.yaml lives in
+# `local-path-storage`, the rest in `personal-agent`, and StorageClass
+# is cluster-scoped.
+
+resources:
+  - postgres-storage.yaml          # StorageClass postgres-local (cluster-scoped)
+  - local-path-config-patch.yaml   # ConfigMap patch in local-path-storage ns
+  - 01-postgres-config.yaml        # ConfigMap with postgresql.conf + init.sql
+  - 02-postgres-pvc.yaml
+  - 03-postgres-statefulset.yaml
+  - 04-postgres-service.yaml
+  - 05-postgres-networkpolicy.yaml
+
+generators:
+  # SOPS-encrypted secret. KSOPS runs as a kustomize generator (same
+  # pattern as k8s/ksops-generator.yaml for the personal-agent app).
+  - ksops-generator.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
