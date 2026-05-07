@@ -21,9 +21,12 @@ spec:
     automated:
       prune: false  # NUNCA auto-prune para Postgres
       selfHeal: true
+    # ServerSideApply removed: incompatible with the --force flag that
+    # ArgoCD's selfHeal injects on drift reconciliation. The error was
+    # "--force cannot be used with --server-side". The personal-agent
+    # Application uses native kubectl apply (no SSA option) and works.
     syncOptions:
     - CreateNamespace=true
-    - ServerSideApply=true
     retry:
       limit: 3
       backoff:
