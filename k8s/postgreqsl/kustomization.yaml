@@ -15,7 +15,7 @@ kind: Kustomization
 
 resources:
   - postgres-storage.yaml          # StorageClass postgres-local (cluster-scoped)
-  - local-path-config-patch.yaml   # ConfigMap patch in local-path-storage ns
+  #- local-path-config-patch.yaml   # ConfigMap patch in local-path-storage ns
   - 01-postgres-config.yaml        # ConfigMap with postgresql.conf + init.sql
   - 02-postgres-pvc.yaml
   - 03-postgres-statefulset.yaml
