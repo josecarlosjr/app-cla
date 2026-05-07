@@ -32,7 +32,16 @@ data:
     metadata:
       name: helper-pod
     spec:
+      # Tolerate any taint so the helper can run on control-plane
+      # nodes (k3s default has NoSchedule on the master). Without
+      # this, the pod sat in Pending and the PVC timed out at 120s.
+      tolerations:
+        - operator: Exists
       containers:
       - name: helper-pod
-        image: busybox
+        # Rancher's busybox mirror — no Docker Hub rate limits, which
+        # is what was stalling the original `image: busybox` pull and
+        # producing "create process timeout after 120 seconds" on the
+        # PVC. Pinned tag keeps the digest reproducible.
+        image: rancher/mirrored-library-busybox:1.36.1
         imagePullPolicy: IfNotPresent
