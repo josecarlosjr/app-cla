@@ -17,13 +17,13 @@ spec:
       # Pin estritamente ao node-01
       nodeSelector:
         kubernetes.io/hostname: node-01
-      
+
       # QoS Guaranteed para Postgres não ser killed primeiro em pressure
       containers:
       - name: postgres
         image: timescale/timescaledb:latest-pg16
         imagePullPolicy: IfNotPresent
-        
+
         resources:
           requests:
             memory: "256Mi"
@@ -31,7 +31,7 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "1000m"
-        
+
         env:
         - name: POSTGRES_DB
           valueFrom:
@@ -48,6 +48,13 @@ spec:
             secretKeyRef:
               name: postgres-secrets
               key: POSTGRES_PASSWORD
+        # PIA_DB_PASSWORD is needed by /docker-entrypoint-initdb.d/init.sh
+        # to provision the `pia` application user on first boot.
+        - name: PIA_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: PIA_DB_PASSWORD
         - name: PGDATA
           value: "/var/lib/postgresql/data/pgdata"
         # TimescaleDB tuning hint
@@ -55,11 +62,11 @@ spec:
           value: "1500MB"
         - name: TS_TUNE_NUM_CPUS
           value: "1"
-        
+
         ports:
         - name: postgres
           containerPort: 5432
-        
+
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data
@@ -67,15 +74,15 @@ spec:
           mountPath: /etc/postgresql/postgresql.conf
           subPath: postgresql.conf
         - name: postgres-config
-          mountPath: /docker-entrypoint-initdb.d/init.sql
-          subPath: init.sql
-        
+          mountPath: /docker-entrypoint-initdb.d/init.sh
+          subPath: init.sh
+
         # Custom command para usar nosso config
         args:
         - "postgres"
         - "-c"
         - "config_file=/etc/postgresql/postgresql.conf"
-        
+
         livenessProbe:
           exec:
             command:
@@ -86,7 +93,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         readinessProbe:
           exec:
             command:
@@ -97,7 +104,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         # Graceful shutdown
         lifecycle:
           preStop:
@@ -106,9 +113,9 @@ spec:
                 - /bin/sh
                 - -c
                 - "pg_ctl -D /var/lib/postgresql/data/pgdata -m fast -w stop"
-      
+
       terminationGracePeriodSeconds: 60
-      
+
       volumes:
       - name: postgres-data
         persistentVolumeClaim:
