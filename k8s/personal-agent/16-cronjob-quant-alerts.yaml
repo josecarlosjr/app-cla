@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quant-alerts
+  namespace: personal-agent
+  labels:
+    app: quant-alerts
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # 23:30 UTC daily — 30 minutes after quant-detectors (23:00 UTC)
+  # finishes writing the day's LPPL + GSADF features. The detector run
+  # for the 11-ticker watchlist takes ~70s, so 30 min is plenty of
+  # margin for a slow run.
+  schedule: "30 23 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: quant-alerts
+              # Bump SHA after the next app-cla-image build that ships
+              # quant_alerts.py.
+              image: josecarlosjr/app-cla-agent:sha-515febb
+              command: ["python", "quant_alerts.py"]
+              envFrom:
+                # postgres-secrets: DATABASE_URL + PIA_DB_* for reading
+                # quant_features and quant_bars.
+                - secretRef:
+                    name: postgres-secrets
+                # agent-secrets: ANTHROPIC_API_KEY (Haiku narrative) +
+                # TELEGRAM_BOT_TOKEN + TELEGRAM_ALLOWED_USER_ID for
+                # delivery. Same secret used by news_analyzer,
+                # crypto_scanner, digest, etc.
+                - secretRef:
+                    name: agent-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                # State file lives at /data/quant_alerts_state.json
+                # alongside analyzed_news.json, crypto_scan.json, etc.
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  # Most of the runtime is the single Haiku call + the
+                  # postgres read; trivial cpu/mem footprint.
+                  cpu: 500m
+                  memory: 256Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
