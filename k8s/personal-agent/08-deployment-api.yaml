@@ -7,7 +7,16 @@ metadata:
     app: personal-agent-api
     app.kubernetes.io/part-of: personal-agent
 spec:
-  replicas: 2
+  # SQLite WAL serialises all writers; running >1 replica against the same
+  # file just queues writes on the same node (the PV is hostPath with
+  # nodeAffinity, so both replicas land on the same disk anyway — no real
+  # HA is gained). Stay at 1 until time-series tables migrate to Postgres
+  # and we can split readers from writers cleanly.
+  replicas: 1
+  strategy:
+    # Recreate avoids the brief overlap during a rolling deploy where two
+    # uvicorn processes would both try to grab the SQLite write lock.
+    type: Recreate
   selector:
     matchLabels:
       app: personal-agent-api
