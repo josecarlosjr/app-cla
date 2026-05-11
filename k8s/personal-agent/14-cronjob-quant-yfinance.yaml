@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quant-yfinance
+  namespace: personal-agent
+  labels:
+    app: quant-yfinance
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # 22:00 UTC daily = after NY close (21:00 UTC during EDT, 22:00 UTC
+  # during EST) plus a small buffer. Yahoo backfills the day's bar
+  # within minutes of close. BTC/ETH are 24/7, run with the rest.
+  schedule: "0 22 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # First run backfills 10 years for 11 tickers — that's a large
+      # initial pull. Give it more retries in case Yahoo rate-limits.
+      backoffLimit: 3
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: quant-yfinance
+              # Bump after the next app-cla-image build that includes
+              # pg_database.py + quant_yfinance.py + the new
+              # yfinance/psycopg deps.
+              image: josecarlosjr/app-cla-agent:sha-02d3dcd
+              command: ["python", "quant_yfinance.py"]
+              envFrom:
+                # DATABASE_URL only — yfinance is anonymous.
+                - secretRef:
+                    name: postgres-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  # First-run backfill loads ~30k rows into pandas
+                  # before the bulk upsert; bump memory to be safe.
+                  cpu: 500m
+                  memory: 768Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
