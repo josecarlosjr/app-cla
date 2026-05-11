@@ -16,6 +16,8 @@ resources:
   - 10-cronjob-digest-morning.yaml
   - 11-cronjob-digest-evening.yaml
   - 12-cronjob-notifications.yaml
+  - 13-cronjob-quant-fred.yaml
+  - 14-cronjob-quant-yfinance.yaml
 
 generators:
   - ksops-generator.yaml
