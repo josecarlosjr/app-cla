@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quant-detectors
+  namespace: personal-agent
+  labels:
+    app: quant-detectors
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # 23:00 UTC daily — one hour after quant-yfinance refreshes the bars
+  # so the detector always works on the day's close.
+  schedule: "0 23 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: quant-detectors
+              # Bump SHA after the next app-cla-image build that ships
+              # quant_detectors.py + the updated pg_database.py with
+              # get_latest_features_by_target().
+              image: josecarlosjr/app-cla-agent:sha-02d3dcd
+              command: ["python", "quant_detectors.py"]
+              envFrom:
+                # DATABASE_URL + PIA_DB_* — only postgres needed,
+                # no LLM / external APIs called.
+                - secretRef:
+                    name: postgres-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  # ~70s runtime, mostly LPPL grid search.
+                  # Bumping CPU helps the numpy lstsq calls finish
+                  # faster but isn't critical — the cron has all night.
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 512Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
