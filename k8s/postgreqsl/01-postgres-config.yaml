@@ -10,21 +10,21 @@ data:
     effective_cache_size = 1GB
     work_mem = 8MB
     maintenance_work_mem = 128MB
-    
+
     # Connections
     max_connections = 50
-    
+
     # WAL
     wal_buffers = 16MB
     wal_compression = on
     checkpoint_completion_target = 0.9
     max_wal_size = 1GB
     min_wal_size = 80MB
-    
+
     # SSD optimizations
     random_page_cost = 1.1
     effective_io_concurrency = 200
-    
+
     # Logging
     log_min_duration_statement = 1000
     log_checkpoints = on
@@ -34,29 +34,131 @@ data:
     log_temp_files = 0
     log_autovacuum_min_duration = 0
     log_line_prefix = '%t [%p] %q%u@%d '
-    
+
     # Statistics
     default_statistics_target = 100
-    
+
     # TimescaleDB
     shared_preload_libraries = 'timescaledb'
     timescaledb.max_background_workers = 4
-    
+
     # Autovacuum (importante para time-series)
     autovacuum = on
     autovacuum_max_workers = 3
     autovacuum_naptime = 30s
-  
-  init.sql: |
-    -- Cria extensão TimescaleDB
+
+  # ---------------------------------------------------------------------
+  # init.sh runs once when the data dir is empty (first postgres boot).
+  # We use a .sh (not .sql) so we can pull credentials from the secret
+  # via env vars and pass them safely via psql's `:'var'` substitution
+  # (auto-quotes; immune to SQL injection in the value).
+  # ---------------------------------------------------------------------
+  init.sh: |
+    #!/bin/bash
+    set -e
+
+    psql -v ON_ERROR_STOP=1 \
+         -v pia_pwd="${PIA_DB_PASSWORD}" \
+         -v db="${POSTGRES_DB}" \
+         --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'EOSQL'
+
+    -- ---------------------------------------------------------------
+    -- TimescaleDB extension (must precede any create_hypertable call)
+    -- ---------------------------------------------------------------
     CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
-    
-    -- Cria utilizador para a aplicação PIA
-    CREATE USER pia WITH PASSWORD 'PLACEHOLDER_TO_BE_REPLACED';
-    GRANT CONNECT ON DATABASE agent TO pia;
+
+    -- ---------------------------------------------------------------
+    -- PIA application user (password injected from postgres-secrets)
+    -- ---------------------------------------------------------------
+    CREATE USER pia WITH PASSWORD :'pia_pwd';
+
+    GRANT CONNECT ON DATABASE :"db" TO pia;
     GRANT USAGE ON SCHEMA public TO pia;
     GRANT CREATE ON SCHEMA public TO pia;
+
+    -- ---------------------------------------------------------------
+    -- quant_indicators
+    --   FRED-style scalar series (yield curve, credit spreads, M2,
+    --   fed funds, unemployment, CPI, VIX, ...). One row per
+    --   (series_id, ts).
+    -- ---------------------------------------------------------------
+    CREATE TABLE quant_indicators (
+        series_id  TEXT             NOT NULL,
+        ts         TIMESTAMPTZ      NOT NULL,
+        value      DOUBLE PRECISION NOT NULL,
+        PRIMARY KEY (series_id, ts)
+    );
+    SELECT create_hypertable('quant_indicators', 'ts', if_not_exists => TRUE);
+    CREATE INDEX idx_quant_indicators_series
+        ON quant_indicators (series_id, ts DESC);
+
+    -- ---------------------------------------------------------------
+    -- quant_bars
+    --   OHLCV per ticker. Daily granularity to start; the schema
+    --   already supports intraday if a future feed needs it.
+    -- ---------------------------------------------------------------
+    CREATE TABLE quant_bars (
+        ticker     TEXT             NOT NULL,
+        ts         TIMESTAMPTZ      NOT NULL,
+        open       DOUBLE PRECISION,
+        high       DOUBLE PRECISION,
+        low        DOUBLE PRECISION,
+        close      DOUBLE PRECISION NOT NULL,
+        volume     BIGINT,
+        PRIMARY KEY (ticker, ts)
+    );
+    SELECT create_hypertable('quant_bars', 'ts', if_not_exists => TRUE);
+    CREATE INDEX idx_quant_bars_ticker
+        ON quant_bars (ticker, ts DESC);
+
+    -- ---------------------------------------------------------------
+    -- quant_valuations
+    --   Periodic valuation snapshots per ticker (P/E, P/B, P/S, CAPE,
+    --   market cap). Updated by the yfinance cronjob.
+    -- ---------------------------------------------------------------
+    CREATE TABLE quant_valuations (
+        ticker      TEXT             NOT NULL,
+        ts          TIMESTAMPTZ      NOT NULL,
+        pe          DOUBLE PRECISION,
+        pb          DOUBLE PRECISION,
+        ps          DOUBLE PRECISION,
+        cape        DOUBLE PRECISION,
+        market_cap  DOUBLE PRECISION,
+        PRIMARY KEY (ticker, ts)
+    );
+    SELECT create_hypertable('quant_valuations', 'ts', if_not_exists => TRUE);
+
+    -- ---------------------------------------------------------------
+    -- quant_features
+    --   Output of the detectors (LPPL bubble probability, GSADF
+    --   statistic, recession score, etc.). `target` is what the
+    --   feature is computed for — a ticker, "global", or a virtual
+    --   indicator like "yield_curve_10y3m". `meta` carries any
+    --   structured payload the detector wants (fit params, p-value).
+    -- ---------------------------------------------------------------
+    CREATE TABLE quant_features (
+        feature_id  TEXT             NOT NULL,
+        target      TEXT             NOT NULL,
+        ts          TIMESTAMPTZ      NOT NULL,
+        value       DOUBLE PRECISION NOT NULL,
+        meta        JSONB,
+        PRIMARY KEY (feature_id, target, ts)
+    );
+    SELECT create_hypertable('quant_features', 'ts', if_not_exists => TRUE);
+    CREATE INDEX idx_quant_features_target
+        ON quant_features (target, feature_id, ts DESC);
+
+    -- ---------------------------------------------------------------
+    -- Grant the pia user on the tables we just created (and default
+    -- privileges so future tables don't need a manual re-grant).
+    -- ---------------------------------------------------------------
     GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pia;
     GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO pia;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO pia;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO pia;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+        GRANT ALL ON TABLES TO pia;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+        GRANT ALL ON SEQUENCES TO pia;
+
+    EOSQL
+
+    echo "PIA postgres init complete: timescaledb + pia user + 4 quant hypertables ready"
