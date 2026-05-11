@@ -19,6 +19,7 @@ resources:
   - 13-cronjob-quant-fred.yaml
   - 14-cronjob-quant-yfinance.yaml
   - 15-cronjob-quant-detectors.yaml
+  - 16-cronjob-quant-alerts.yaml
 
 generators:
   - ksops-generator.yaml
