@@ -5,6 +5,15 @@ metadata:
   namespace: personal-agent
 data:
   postgresql.conf: |
+    # Listen
+    # Default for vanilla postgres is 'localhost', which only binds the
+    # loopback interface. Since we override the config_file flag, the
+    # docker-image's '*' default does NOT apply — we must set it here
+    # explicitly or all in-cluster traffic (Service -> pod IP) gets
+    # refused. The pod is inside a Service-scoped namespace + has a
+    # NetworkPolicy gating ingress, so '*' is safe.
+    listen_addresses = '*'
+
     # Memory
     shared_buffers = 512MB
     effective_cache_size = 1GB
