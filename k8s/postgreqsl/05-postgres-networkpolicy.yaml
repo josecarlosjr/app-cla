@@ -10,13 +10,19 @@ spec:
   policyTypes:
   - Ingress
   ingress:
+  # Allow any pod in the personal-agent namespace to reach postgres on
+  # 5432. The previous version listed `app: personal-agent` and
+  # `app: personal-agent-api` explicitly, which silently broke the new
+  # quant cronjobs (app=quant-fred / quant-yfinance / quant-detectors /
+  # quant-alerts) — their pods couldn't get past the policy and timed
+  # out on connect.
+  #
+  # Empty podSelector matches all pods *in the same namespace*. The
+  # namespace is dedicated and nobody outside it talks to this Service,
+  # so this is functionally equivalent to "allow internal" without the
+  # per-app maintenance burden.
   - from:
-    - podSelector:
-        matchLabels:
-          app: personal-agent
-    - podSelector:
-        matchLabels:
-          app: personal-agent-api
+    - podSelector: {}
     ports:
     - protocol: TCP
       port: 5432
