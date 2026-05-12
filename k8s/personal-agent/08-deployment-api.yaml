@@ -35,8 +35,16 @@ spec:
             - containerPort: 8000
               protocol: TCP
           envFrom:
+            # agent-secrets: ANTHROPIC_API_KEY + TELEGRAM tokens used by
+            # interactive endpoints.
             - secretRef:
                 name: agent-secrets
+            # postgres-secrets: DATABASE_URL + PIA_DB_* — needed by the
+            # /api/quant/* endpoints (lazy-imported pg_database). Without
+            # this, /api/quant/dashboard returns "Postgres credentials
+            # missing" because the DSN can't be built.
+            - secretRef:
+                name: postgres-secrets
           env:
             - name: DATA_DIR
               value: /data
