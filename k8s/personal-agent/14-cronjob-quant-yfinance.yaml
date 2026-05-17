@@ -28,7 +28,7 @@ spec:
               # Bump after the next app-cla-image build that includes
               # pg_database.py + quant_yfinance.py + the new
               # yfinance/psycopg deps.
-              image: josecarlosjr/app-cla-agent:sha-e7acb9d
+              image: josecarlosjr/app-cla-agent:sha-b2e80e4
               command: ["python", "quant_yfinance.py"]
               envFrom:
                 # DATABASE_URL only — yfinance is anonymous.
