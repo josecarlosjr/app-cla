@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quant-bis
+  namespace: personal-agent
+  labels:
+    app: quant-bis
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # BIS publishes the credit-to-GDP gap quarterly, so weekly is far
+  # more than enough — the upsert is idempotent, this just re-confirms
+  # and picks up the new quarter whenever BIS releases it. Mondays
+  # 05:00 UTC, off-peak and clear of the other quant crons.
+  schedule: "0 5 * * 1"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: quant-bis
+              # Bump this SHA after the next app-cla-image build that
+              # includes quant_bis.py — until then the cron fails with
+              # ModuleNotFoundError (same bootstrap caveat as 13-16).
+              image: josecarlosjr/app-cla-agent:sha-badbe5c
+              command: ["python", "quant_bis.py"]
+              envFrom:
+                # DATABASE_URL + PIA_DB_* for the postgres connection.
+                # No agent-secrets: BIS needs no API key, and this job
+                # touches no LLM / Telegram.
+                - secretRef:
+                    name: postgres-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+                # Uncomment / edit to override the BIS endpoint or the
+                # country set without rebuilding the image:
+                # - name: BIS_API_BASE
+                #   value: https://stats.bis.org/api/v1
+                # - name: BIS_COUNTRIES
+                #   value: "US,PT,BR,GB,DE,FR,ES,CN,JP"
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 300m
+                  memory: 256Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
