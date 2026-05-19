@@ -22,6 +22,7 @@ resources:
   - 16-cronjob-quant-alerts.yaml
   - 17-cronjob-quant-bis.yaml
   - 18-cronjob-quant-eurostat.yaml
+  - 19-cronjob-quant-bpstat.yaml
 
 generators:
   - ksops-generator.yaml
