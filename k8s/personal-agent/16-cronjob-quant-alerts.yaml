@@ -26,7 +26,7 @@ spec:
             - name: quant-alerts
               # Bump SHA after the next app-cla-image build that ships
               # quant_alerts.py.
-              image: josecarlosjr/app-cla-agent:sha-badbe5c
+              image: josecarlosjr/app-cla-agent:sha-72f0abc
               command: ["python", "quant_alerts.py"]
               envFrom:
                 # postgres-secrets: DATABASE_URL + PIA_DB_* for reading
