@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: quant-bpstat
+  namespace: personal-agent
+  labels:
+    app: quant-bpstat
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # BPstat house-price series are quarterly; weekly is generous and the
+  # upsert is idempotent. Mondays 06:00 UTC — right after quant-eurostat
+  # (05:30), off-peak and clear of the 13-16 daily quant crons.
+  schedule: "0 6 * * 1"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: quant-bpstat
+              # Bump this SHA after the next app-cla-image build that
+              # includes quant_bpstat.py — until then the cron fails
+              # with ModuleNotFoundError (same bootstrap caveat as
+              # 13-18).
+              image: josecarlosjr/app-cla-agent:sha-5bcacd7
+              command: ["python", "quant_bpstat.py"]
+              envFrom:
+                # DATABASE_URL + PIA_DB_* only. BPstat is keyless and
+                # this job touches no LLM / Telegram.
+                - secretRef:
+                    name: postgres-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+                # Uncomment / edit to retune without an image rebuild.
+                # After the first run, read the cron log: each series'
+                # human label is printed, so pick/prune IDs here.
+                # - name: BPSTAT_API_BASE
+                #   value: https://bpstat.bportugal.pt/data/v1
+                # - name: BPSTAT_SERIES_IDS
+                #   value: "12559645,12559646,12559647,5739035"
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 300m
+                  memory: 256Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
