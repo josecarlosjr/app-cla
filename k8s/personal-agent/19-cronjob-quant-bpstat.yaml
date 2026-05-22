@@ -27,7 +27,7 @@ spec:
               # includes quant_bpstat.py — until then the cron fails
               # with ModuleNotFoundError (same bootstrap caveat as
               # 13-18).
-              image: josecarlosjr/app-cla-agent:sha-e667d93
+              image: josecarlosjr/app-cla-agent:sha-c75817a
               command: ["python", "quant_bpstat.py"]
               envFrom:
                 # DATABASE_URL + PIA_DB_* only. BPstat is keyless and
