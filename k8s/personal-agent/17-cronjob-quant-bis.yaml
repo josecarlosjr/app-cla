@@ -27,7 +27,7 @@ spec:
               # Bump this SHA after the next app-cla-image build that
               # includes quant_bis.py — until then the cron fails with
               # ModuleNotFoundError (same bootstrap caveat as 13-16).
-              image: josecarlosjr/app-cla-agent:sha-c75817a
+              image: josecarlosjr/app-cla-agent:sha-9f20ae5
               command: ["python", "quant_bis.py"]
               envFrom:
                 # DATABASE_URL + PIA_DB_* for the postgres connection.
