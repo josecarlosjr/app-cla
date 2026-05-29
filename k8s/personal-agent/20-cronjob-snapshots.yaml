@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snapshots-capture
+  namespace: personal-agent
+  labels:
+    app: snapshots-capture
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # Every 6h (00:00, 06:00, 12:00, 18:00 UTC) — Onda 11 system snapshots.
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: snapshots-capture
+              image: curlimages/curl:latest
+              # -f so HTTP >=400 fails the job (makes backoffLimit meaningful).
+              command:
+                - sh
+                - -c
+                - curl -fsS --max-time 120 -X POST http://personal-agent-api:8000/api/snapshots/capture
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 50m
+                  memory: 64Mi
+          restartPolicy: OnFailure
