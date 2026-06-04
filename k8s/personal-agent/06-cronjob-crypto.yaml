@@ -20,7 +20,7 @@ spec:
             personal-agent: "true"
           containers:
             - name: crypto-scanner
-              image: josecarlosjr/app-cla-agent:sha-46f99d0
+              image: josecarlosjr/app-cla-agent:sha-65bfb0e
               command: ["python", "crypto_scanner.py"]
               envFrom:
                 - secretRef:
