@@ -20,7 +20,7 @@ spec:
         personal-agent: "true"
       containers:
         - name: agent
-          image: josecarlosjr/app-cla-agent:sha-46f99d0
+          image: josecarlosjr/app-cla-agent:sha-65bfb0e
           envFrom:
             - secretRef:
                 name: agent-secrets
