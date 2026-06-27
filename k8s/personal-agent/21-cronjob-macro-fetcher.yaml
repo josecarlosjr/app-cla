@@ -1,0 +1,72 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: macro-fetcher
+  namespace: personal-agent
+  labels:
+    app: macro-fetcher
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # Daily fetch of the 5 macro indicators (Onda 12 Sprint 1 Camada B):
+  # CAPE (multpl scrape, monthly) + VIX/HY_OAS/SP500/TNX (FRED, daily).
+  # 12:00 UTC = after FRED's morning publish + multpl mid-day update;
+  # avoids overlap with the quant-fred cron at 00/06/12/18 by sharing
+  # only the 12:00 slot (concurrencyPolicy=Forbid is in effect per-job,
+  # so cross-cron overlap is also fine — they hit different tables).
+  schedule: "0 12 * * *"
+  # SQLite at /data/agent.db is single-writer; never let two runs of this
+  # cron overlap. Skips trigger a Kubernetes event we can alert on later.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # backoffLimit=1 instead of the quant family's 2: the fetcher
+      # already retries network errors once internally per indicator
+      # (HTTP 429 / 5xx / timeout — see macro_fetcher.fetch_fred_series),
+      # so an extra K8s-level retry just doubles the load on a flapping
+      # FRED. One Job retry is enough for an unrelated pod-eviction.
+      backoffLimit: 1
+      # Hard ceiling — a healthy daily run finishes in seconds. 600s gives
+      # generous slack for transient FRED slowness without leaving a stuck
+      # job blocking tomorrow's schedule via concurrencyPolicy=Forbid.
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: macro-fetcher
+              # TODO BEFORE MERGE: replace with the SHA produced by
+              # CI for the merge commit of app-cla-image#72
+              # (sprint-1-macro-hardening). That image carries
+              #   - macro_repository / jobs/macro_fetcher / jobs/macro_backfill
+              #   - STALE_BUSINESS_DAYS_DAILY = 6 (no false positives)
+              #   - httpx/httpcore loggers pinned to WARNING
+              # Using an earlier SHA would crash on ModuleNotFoundError.
+              image: josecarlosjr/app-cla-agent:sha-TODO-AFTER-72-MERGE
+              command: ["python", "jobs/macro_fetcher.py"]
+              envFrom:
+                # FRED_API_KEY (and any other shared secret) — no
+                # postgres-secrets needed: macro persists to SQLite
+                # at /data/agent.db, not the quant Postgres.
+                - secretRef:
+                    name: agent-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 300m
+                  memory: 256Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure

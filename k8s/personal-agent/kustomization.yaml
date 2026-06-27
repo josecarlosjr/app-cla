@@ -24,6 +24,7 @@ resources:
   - 18-cronjob-quant-eurostat.yaml
   - 19-cronjob-quant-bpstat.yaml
   - 20-cronjob-snapshots.yaml
+  - 21-cronjob-macro-fetcher.yaml
 
 generators:
   - ksops-generator.yaml
