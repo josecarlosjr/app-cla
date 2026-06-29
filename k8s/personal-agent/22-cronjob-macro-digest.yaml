@@ -13,9 +13,15 @@ spec:
   # do digest-evening (21:00 Europe/Lisbon = 20:00 UTC no horário de
   # verão) para não competir pelo /data SQLite writer.
   schedule: "0 13 * * *"
-  # SQLite at /data/agent.db: este job é read-only (não escreve), mas
-  # mesmo assim mantém Forbid para evitar dois envios Telegram em
-  # paralelo em caso de re-trigger acidental.
+  # timeZone explícito: sem isto o CronJob controller usa o timezone do
+  # kube-controller-manager (geralmente UTC, mas não há garantia).
+  # Etc/UTC é canónico e match com macro-fetcher (21-cronjob).
+  timeZone: "Etc/UTC"
+  # /data/agent.db: leitura de macro_indicators é read-only; o processo
+  # actualiza /data/digest_state.json após o envio Telegram
+  # (state[f"last_macro"] = datetime.now(UTC).isoformat()). Forbid
+  # protege esse update e impede dois envios Telegram em paralelo em
+  # caso de re-trigger acidental.
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3

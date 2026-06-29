@@ -14,6 +14,11 @@ spec:
   # only the 12:00 slot (concurrencyPolicy=Forbid is in effect per-job,
   # so cross-cron overlap is also fine — they hit different tables).
   schedule: "0 12 * * *"
+  # timeZone explícito: sem isto o CronJob controller usa o timezone do
+  # kube-controller-manager — frágil em rolling upgrades do plano de
+  # controlo. Etc/UTC é canónico e match com os comentários do schedule
+  # ("12:00 UTC") que já assumiam UTC implícito.
+  timeZone: "Etc/UTC"
   # SQLite at /data/agent.db is single-writer; never let two runs of this
   # cron overlap. Skips trigger a Kubernetes event we can alert on later.
   concurrencyPolicy: Forbid
