@@ -27,7 +27,7 @@ spec:
               # includes quant_eurostat.py — until then the cron fails
               # with ModuleNotFoundError (same bootstrap caveat as
               # 13-17).
-              image: josecarlosjr/app-cla-agent:sha-e4eb2b1
+              image: josecarlosjr/app-cla-agent:sha-TODO-AFTER-B1-IMAGE-MERGE
               command: ["python", "quant_eurostat.py"]
               envFrom:
                 # DATABASE_URL + PIA_DB_* only. Eurostat is keyless and

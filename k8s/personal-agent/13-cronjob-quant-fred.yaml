@@ -26,7 +26,7 @@ spec:
               # Bump this SHA after the next app-cla-image build that
               # includes pg_database.py + quant_fred.py — until then
               # the cron will fail with ModuleNotFoundError.
-              image: josecarlosjr/app-cla-agent:sha-e4eb2b1
+              image: josecarlosjr/app-cla-agent:sha-TODO-AFTER-B1-IMAGE-MERGE
               command: ["python", "quant_fred.py"]
               envFrom:
                 # FRED_API_KEY (register free at fredaccount.stlouisfed.org)

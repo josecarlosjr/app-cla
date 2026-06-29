@@ -20,7 +20,7 @@ spec:
             personal-agent: "true"
           containers:
             - name: notifications
-              image: josecarlosjr/app-cla-agent:sha-e4eb2b1
+              image: josecarlosjr/app-cla-agent:sha-TODO-AFTER-B1-IMAGE-MERGE
               command: ["python", "notifications.py"]
               envFrom:
                 - secretRef:

@@ -25,6 +25,7 @@ resources:
   - 19-cronjob-quant-bpstat.yaml
   - 20-cronjob-snapshots.yaml
   - 21-cronjob-macro-fetcher.yaml
+  - 22-cronjob-macro-digest.yaml
 
 generators:
   - ksops-generator.yaml
