@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: macro-digest
+  namespace: personal-agent
+  labels:
+    app: macro-digest
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # Onda 12 Sprint 1 B1 — Telegram brief das 5 séries macro persistidas
+  # pelo macro-fetcher (CronJob 21). 13:00 UTC = 1h depois do fetcher
+  # (12:00 UTC) — janela suficiente para fetch + retries do FRED, e antes
+  # do digest-evening (21:00 Europe/Lisbon = 20:00 UTC no horário de
+  # verão) para não competir pelo /data SQLite writer.
+  schedule: "0 13 * * *"
+  # timeZone explícito: sem isto o CronJob controller usa o timezone do
+  # kube-controller-manager (geralmente UTC, mas não há garantia).
+  # Etc/UTC é canónico e match com macro-fetcher (21-cronjob).
+  timeZone: "Etc/UTC"
+  # /data/agent.db: leitura de macro_indicators é read-only; o processo
+  # actualiza /data/digest_state.json após o envio Telegram
+  # (state[f"last_macro"] = datetime.now(UTC).isoformat()). Forbid
+  # protege esse update e impede dois envios Telegram em paralelo em
+  # caso de re-trigger acidental.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # backoffLimit=1 (não 2 como digest-evening): a mensagem é fixa,
+      # sem LLM — não há razão para retry pesado. Um retry cobre
+      # pod-eviction; mais que isso é spam no Telegram.
+      backoffLimit: 1
+      # Hard ceiling — leitura SQLite + 1 POST Telegram leva segundos.
+      # 120s é folga generosa para uma rede flapping sem deixar o job
+      # preso bloqueando o próximo schedule via Forbid.
+      activeDeadlineSeconds: 120
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: macro-digest
+              # TODO BEFORE MERGE: substituir pela SHA produzida por CI
+              # para o merge de app-cla-image#73 (b1-macro-digest).
+              # Essa imagem traz o `_format_macro_message` /
+              # `_gather_macro_data` no digest.py — uma SHA anterior
+              # falharia com "Invalid mode: macro".
+              # Todos os outros manifests (digest-morning/evening,
+              # notifications, quant-*, deployment, macro-fetcher,
+              # monitor, news, crypto, patterns) também precisam subir
+              # para a mesma SHA neste mesmo PR — senão jobs que
+              # compartilham o script divergem em comportamento.
+              image: josecarlosjr/app-cla-agent:sha-f3ac9b4
+              command: ["python", "digest.py", "macro"]
+              envFrom:
+                # TELEGRAM_BOT_TOKEN + TELEGRAM_ALLOWED_USER_ID — mesmos
+                # secrets já usados por digest-morning/evening.
+                - secretRef:
+                    name: agent-secrets
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 300m
+                  memory: 256Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure

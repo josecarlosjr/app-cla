@@ -20,7 +20,7 @@ spec:
             personal-agent: "true"
           containers:
             - name: news
-              image: josecarlosjr/app-cla-agent:sha-e4eb2b1
+              image: josecarlosjr/app-cla-agent:sha-f3ac9b4
               command: ["python", "news_analyzer.py"]
               envFrom:
                 - secretRef:
