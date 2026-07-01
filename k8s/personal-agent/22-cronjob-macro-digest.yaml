@@ -51,7 +51,7 @@ spec:
               # monitor, news, crypto, patterns) também precisam subir
               # para a mesma SHA neste mesmo PR — senão jobs que
               # compartilham o script divergem em comportamento.
-              image: josecarlosjr/app-cla-agent:sha-f3ac9b4
+              image: josecarlosjr/app-cla-agent:sha-622cd4f
               command: ["python", "digest.py", "macro"]
               envFrom:
                 # TELEGRAM_BOT_TOKEN + TELEGRAM_ALLOWED_USER_ID — mesmos
