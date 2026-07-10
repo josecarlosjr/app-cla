@@ -49,7 +49,7 @@ spec:
               #   - STALE_BUSINESS_DAYS_DAILY = 6 (no false positives)
               #   - httpx/httpcore loggers pinned to WARNING
               # Using an earlier SHA would crash on ModuleNotFoundError.
-              image: josecarlosjr/app-cla-agent:sha-622cd4f
+              image: josecarlosjr/app-cla-agent:sha-891516e
               command: ["python", "jobs/macro_fetcher.py"]
               envFrom:
                 # FRED_API_KEY (and any other shared secret) — no
