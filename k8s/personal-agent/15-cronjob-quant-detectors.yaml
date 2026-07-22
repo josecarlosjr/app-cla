@@ -25,7 +25,7 @@ spec:
               # Bump SHA after the next app-cla-image build that ships
               # quant_detectors.py + the updated pg_database.py with
               # get_latest_features_by_target().
-              image: josecarlosjr/app-cla-agent:sha-891516e
+              image: josecarlosjr/app-cla-agent:sha-9a58e22
               command: ["python", "quant_detectors.py"]
               envFrom:
                 # DATABASE_URL + PIA_DB_* — only postgres needed,
