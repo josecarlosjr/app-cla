@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: bis-fetcher
+  namespace: personal-agent
+  labels:
+    app: bis-fetcher
+    app.kubernetes.io/part-of: personal-agent
+spec:
+  # Weekly fetch of the 28 BIS credit-to-GDP indicators (Onda 12 Sprint
+  # C1 Camada B): 14 countries × {narrow gap, ratio}. BIS publishes
+  # quarterly with a ~3-month lag, so weekly is far more than enough —
+  # the job re-pulls the full history each run and update_on_change
+  # writes only the rows BIS actually revised (the one-sided HP trend
+  # shifts every quarter, so historical gap values do get restated).
+  #
+  # Mondays 06:00 UTC: deliberately 1h after the quant-bis cron (17-*,
+  # "0 5 * * 1") so the two BIS jobs never hammer stats.bis.org in
+  # parallel. They hit different backends anyway (this one → SQLite;
+  # quant-bis → Postgres) but staggering keeps us a polite client.
+  schedule: "0 6 * * 1"
+  # timeZone explícito — sem isto o CronJob controller usa o timezone do
+  # kube-controller-manager, frágil em rolling upgrades do control plane.
+  # Etc/UTC é canónico e match com "06:00 UTC" no comentário do schedule.
+  timeZone: "Etc/UTC"
+  # SQLite at /data/agent.db is single-writer; never let two runs of this
+  # cron overlap (nor overlap the macro-fetcher, which also writes the
+  # same DB — but they run on different schedules).
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # backoffLimit=1: bis_fetcher already retries network errors once
+      # internally per indicator (HTTP 429 / RequestError — see
+      # bis_fetcher.fetch_one), so an extra K8s-level retry just doubles
+      # the load on a flapping BIS. One Job retry covers an unrelated
+      # pod-eviction.
+      backoffLimit: 1
+      # Hard ceiling — a healthy run finishes in ~5s (preflight 3s warm-up
+      # + ~1.4s parallel fetch of 28 indicators). 300s is enormous slack
+      # for transient BIS slowness without leaving a stuck job blocking
+      # next Monday via concurrencyPolicy=Forbid.
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          nodeSelector:
+            personal-agent: "true"
+          containers:
+            - name: bis-fetcher
+              # SHA já em produção — o merge de app-cla-image#76 (Sprint C1
+              # code) produziu 9a58e22 e o fleet inteiro já foi bumpado para
+              # ela. Este manifesto apenas ADICIONA o cron novo; não há
+              # fleet bump associado (a imagem já é a certa).
+              image: josecarlosjr/app-cla-agent:sha-9a58e22
+              # Corre o BACKFILL, não o fetcher lean: re-puxa toda a história
+              # (startPeriod=1980) e deixa update_on_change escrever só as
+              # revisões. Funcionalmente idêntico a bis_fetcher.py (ambos
+              # puxam desde 1980) mas com preflight + report estruturado
+              # nos logs — melhor observabilidade para uma cadência semanal.
+              # NB: o docstring de bis_backfill.py ainda diz "manual, não
+              # escalonado" — corrigir num futuro image PR (backlog C1).
+              command: ["python", "jobs/bis_backfill.py"]
+              # SEM envFrom: agent-secrets — BIS não usa API key, e este job
+              # persiste em SQLite (/data/agent.db), não no Postgres do
+              # quant. Least-privilege: não damos ao pod acesso a
+              # ANTHROPIC/TELEGRAM/FRED secrets que ele nunca lê. Se um dia
+              # bis_fetcher precisar de um secret, adicionar aqui.
+              env:
+                - name: DATA_DIR
+                  value: /data
+              volumeMounts:
+                - name: agent-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 300m
+                  memory: 256Mi
+          volumes:
+            - name: agent-data
+              persistentVolumeClaim:
+                claimName: agent-data
+          restartPolicy: OnFailure
