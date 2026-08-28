@@ -18,7 +18,7 @@ spec:
       containers:
         - name: frontend
           #Replace by your registry
-          image: josecarlosjr/app-cla-frontend:sha-9a58e22
+          image: josecarlosjr/app-cla-frontend:sha-00fffe1
           ports:
             - containerPort: 80
               name: http
