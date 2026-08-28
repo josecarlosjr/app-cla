@@ -52,7 +52,7 @@ spec:
               # code) produziu 9a58e22 e o fleet inteiro já foi bumpado para
               # ela. Este manifesto apenas ADICIONA o cron novo; não há
               # fleet bump associado (a imagem já é a certa).
-              image: josecarlosjr/app-cla-agent:sha-9a58e22
+              image: josecarlosjr/app-cla-agent:sha-00fffe1
               # Corre o BACKFILL, não o fetcher lean: re-puxa toda a história
               # (startPeriod=1980) e deixa update_on_change escrever só as
               # revisões. Funcionalmente idêntico a bis_fetcher.py (ambos
