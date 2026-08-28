@@ -19,6 +19,7 @@ data:
     effective_cache_size = 1GB
     work_mem = 8MB
     maintenance_work_mem = 128MB
+    max_locks_per_transaction = 256
 
     # Connections
     max_connections = 50
