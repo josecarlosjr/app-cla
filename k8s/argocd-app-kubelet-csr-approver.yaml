@@ -1,0 +1,50 @@
+# argocd/kubelet-csr-approver-application.yaml
+#
+# Auto-aprova CSRs kubelet-serving após validação (nome do nó + prefixo IP).
+# O Kubernetes NUNCA auto-aprova estes CSRs por desenho: não consegue
+# verificar que os IPs/nomes no pedido pertencem ao nó que os pede.
+# Sem approver, os pedidos acumulam, o cert expira, e kubectl exec/logs/cp
+# quebram com "tls: internal error" (aconteceu 2026-10-31, 377 pendentes).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubelet-csr-approver
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://postfinance.github.io/kubelet-csr-approver
+    chart: kubelet-csr-approver
+    targetRevision: 1.2.15
+    helm:
+      values: |
+        # Só estes cinco nomes de nó são aceites.
+        providerRegex: ^(ubuntu|kube-master-02|node-0[1-3])$
+        # Os IPs no CSR têm de estar na LAN do cluster.
+        providerIpPrefixes:
+          - 192.168.2.0/24
+        # Certs de 1 ano + margem (string, por exigência do chart).
+        maxExpirationSeconds: "31622400"
+        # 'ubuntu' não resolve em DNS; os outros quatro resolvem.
+        # Validação de nome e IP mantém-se.
+        bypassDnsResolution: true
+        # 1 réplica: 5 nós, poucos CSRs/dia, Pi com recursos limitados.
+        replicas: 1
+        leaderElection: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false
+    retry:
+      limit: 3
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
